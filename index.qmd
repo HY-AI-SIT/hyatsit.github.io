@@ -1,7 +1,7 @@
 ---
 title: "temp_website"
 ---
-
+![poop](photo.jpg){width=80%}
 # Hi, I'm Hong Yih
 
 I'm a student at Singapore Institute of Technology studying 
