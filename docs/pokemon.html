@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>pokemon – temp_website</title>
+<title>Pokemon Battle – Pokemon Battle Site</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -83,7 +83,7 @@ ul.task-list li input[type="checkbox"] {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">temp_website</span>
+    <span class="navbar-title">Pokemon Battle Site</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -100,6 +100,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="nav-link" href="./about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./pokemon.html" aria-current="page"> 
+<span class="menu-text">Pokemon Battle</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -115,11 +119,70 @@ ul.task-list li input[type="checkbox"] {
         
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Pokemon Battle</h1>
+</div>
 
 
 
+<div class="quarto-title-meta">
 
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div id="game">
+  <div id="enemy-area">
+    <p id="enemy-name">Charmander</p>
+    <p id="enemy-hp">HP: 100</p>
+  </div>
+  <div id="player-area">
+    <p id="player-name">Bulbasaur</p>
+    <p id="player-hp">HP: 100</p>
+  </div>
+  <div id="battle-log">Battle started!</div>
+  <button onclick="attack()">⚔️ Attack</button>
+  <button onclick="heal()">💊 Heal</button>
+</div>
+
+<script>
+let playerHP = 100;
+let enemyHP = 100;
+
+function attack() {
+  if (playerHP <= 0 || enemyHP <= 0) return;
+  let playerDmg = Math.floor(Math.random() * 20) + 5;
+  let enemyDmg = Math.floor(Math.random() * 15) + 5;
+  enemyHP = Math.max(0, enemyHP - playerDmg);
+  playerHP = Math.max(0, playerHP - enemyDmg);
+  update(`You dealt ${playerDmg} damage! Enemy dealt ${enemyDmg} damage!`);
+}
+
+function heal() {
+  if (playerHP <= 0) return;
+  let amount = Math.floor(Math.random() * 20) + 10;
+  playerHP = Math.min(100, playerHP + amount);
+  let enemyDmg = Math.floor(Math.random() * 15) + 5;
+  playerHP = Math.max(0, playerHP - enemyDmg);
+  update(`You healed ${amount} HP! Enemy dealt ${enemyDmg} damage!`);
+}
+
+function update(msg) {
+  document.getElementById("player-hp").textContent = `HP: ${playerHP}`;
+  document.getElementById("enemy-hp").textContent = `HP: ${enemyHP}`;
+  let log = playerHP <= 0 ? "You fainted! 💀" : enemyHP <= 0 ? "Enemy fainted! 🎉 You win!" : msg;
+  document.getElementById("battle-log").textContent = log;
+}
+</script>
 
 
 

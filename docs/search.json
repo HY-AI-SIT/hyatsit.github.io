@@ -1,5 +1,12 @@
 [
   {
+    "objectID": "pokemon.html",
+    "href": "pokemon.html",
+    "title": "Pokemon Battle",
+    "section": "",
+    "text": "Charmander\n    HP: 100\n  \n  \n    Bulbasaur\n    HP: 100\n  \n  Battle started!\n  ⚔️ Attack\n  💊 Heal"
+  },
+  {
     "objectID": "about.html",
     "href": "about.html",
     "title": "About",
@@ -11,20 +18,20 @@
     "href": "index.html",
     "title": "temp_website",
     "section": "",
-    "text": "# Hi, I’m Hong Yih\nI’m a student at Singapore Institute of Technology studying Data Engineering and Visualization."
+    "text": "I’m a student at Singapore Institute of Technology studying Data Engineering and Visualization.\n\n\n\nI’m me\n\n\n\n\n\nI like to play games, watch movies and anime, and listen to music. &lt;- github generated this for me btw\nI also like to learn new things and explore new technologies.\n\n\n\n\npoop"
   },
   {
     "objectID": "index.html#about-me",
     "href": "index.html#about-me",
     "title": "temp_website",
-    "section": "About Me",
-    "text": "About Me\n\nI’m me"
+    "section": "",
+    "text": "I’m me"
   },
   {
     "objectID": "index.html#interests",
     "href": "index.html#interests",
     "title": "temp_website",
-    "section": "Interests",
-    "text": "Interests\n\nI like to play games, watch movies and anime, and listen to music. &lt;- github generated this for me btw\nI also like to learn new things and explore new technologies."
+    "section": "",
+    "text": "I like to play games, watch movies and anime, and listen to music. &lt;- github generated this for me btw\nI also like to learn new things and explore new technologies.\n\n\n\n\npoop"
   }
 ]
