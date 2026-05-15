@@ -408,8 +408,9 @@ function renderMoveSlots() {
     const el = document.getElementById('mslot-' + i);
     if (m) {
       const color = TYPE_COLORS[m.type] || '#888';
+      const hitsLabel = m.minHits&&m.maxHits ? (m.minHits===m.maxHits?` · ${m.minHits}x`:(` · ${m.minHits}-${m.maxHits}x`)) : '';
       el.innerHTML = `<div class="mslot-name">${cap(m.name)}</div>
-        <div class="mslot-meta" style="color:${color}">${m.type} · ${m.damageClass} · ${m.power?m.power+' pwr':'status'} · ${m.accuracy?m.accuracy+'% acc':'—'} · PP ${m.pp}</div>
+        <div class="mslot-meta" style="color:${color}">${m.type} · ${m.damageClass} · ${m.power?m.power+' pwr':'status'}${hitsLabel} · ${m.accuracy?m.accuracy+'% acc':'—'} · PP ${m.pp}</div>
         <div class="mslot-desc">${m.desc}</div>`;
       el.classList.add('filled');
     } else {
@@ -462,7 +463,7 @@ async function selectMove(name, url) {
       pp: d.pp, maxPP: d.pp, damageClass: d.damage_class.name, desc,
       statChanges: (d.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),
       metaCategory: d.meta?.category?.name||'', moveTarget: d.target?.name||'selected-pokemon', heal: d.meta?.healing||0,
-      statChangeToSelf: d.target?.name==='user',
+      statChangeToSelf: d.target?.name==='user', minHits: d.meta?.min_hits??null, maxHits: d.meta?.max_hits??null,
     };
     moveCache[name] = move;
     currentMoves[activeMoveSlot] = move;

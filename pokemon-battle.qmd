@@ -153,7 +153,7 @@ async function fetchFoePokemon(id) {
     try {
       const mr=await fetch(m.move.url); const md=await mr.json();
       const effEntry=md.effect_entries?md.effect_entries.find(e=>e.language.name==='en'):null;
-      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0,statChangeToSelf:md.target?.name==='user'};
+      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0,statChangeToSelf:md.target?.name==='user',minHits:md.meta?.min_hits??null,maxHits:md.meta?.max_hits??null};
     } catch(e) { return {name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}; }
   }));
   const moves = moveData.length ? moveData : [{name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}];
@@ -219,7 +219,8 @@ function renderMoves() {
     const b=document.createElement('button');
     b.className='move-btn'; b.onclick=()=>takeTurn(i);
     b.disabled=(lockedMove!==null&&lockedMove!==i)||m.pp<=0||(yp.item?.effect==='assaultvest'&&!m.power);
-    b.innerHTML=`<div class="mb-name">${cap(m.name)}</div><div class="mb-meta" style="color:${TYPE_COLORS[m.type]||'#888'}">${m.type} · ${m.power?m.power+' pwr':'status'} · ${m.accuracy?m.accuracy+'%':'—'} · PP ${m.pp}/${m.maxPP}</div>`;
+    const hitsLabel=m.minHits&&m.maxHits?(m.minHits===m.maxHits?` · ${m.minHits}x`:` · ${m.minHits}-${m.maxHits}x`):'';
+    b.innerHTML=`<div class="mb-name">${cap(m.name)}</div><div class="mb-meta" style="color:${TYPE_COLORS[m.type]||'#888'}">${m.type} · ${m.power?m.power+' pwr':'status'}${hitsLabel} · ${m.accuracy?m.accuracy+'%':'—'} · PP ${m.pp}/${m.maxPP}</div>`;
     grid.appendChild(b);
   });
 }
@@ -338,58 +339,91 @@ async function doMove(move, atk, def, atkWho, defWho) {
   if (!move.power) { return await doStatusMove(move,atk,def,atkWho,defWho); }
   const hit=Math.random()*100<=(move.accuracy??100);
   if (!hit) { log(cap(atk.name)+' used '+cap(move.name)+'... but it missed!'); await wait(700); return false; }
-  const dmg=calcDamage(move,atk,def);
+
+  // Determine number of hits for multi-hit moves
+  let numHits = 1;
+  if (move.minHits && move.maxHits) {
+    if (move.minHits===2 && move.maxHits===2) { numHits=2; }
+    else if (move.minHits===3 && move.maxHits===3) { numHits=3; }
+    else if (move.minHits===2 && move.maxHits===5) {
+      // Standard 2-5 hit: 35.7% chance of 2, 35.7% chance of 3, 14.3% chance of 4, 14.3% chance of 5
+      const r=Math.random(); numHits=r<0.357?2:r<0.714?3:r<0.857?4:5;
+    } else {
+      numHits=move.minHits+Math.floor(Math.random()*(move.maxHits-move.minHits+1));
+    }
+  }
+
   const eff=getEff(move.type,def.types);
+  let totalDmg=0;
 
-  // Focus Sash
-  if (def.item?.effect==='focussash'&&!def.sashUsed&&def.currentHP===def.maxHP&&dmg>=def.currentHP) {
-    def.currentHP=1; def.sashUsed=true;
-    log(cap(atk.name)+' used '+cap(move.name)+'! '+cap(def.name)+' held on with Focus Sash!');
-  } else {
-    def.currentHP=Math.max(0,def.currentHP-dmg);
-    const effMsg=effText(eff);
-    log(cap(atk.name)+' used '+cap(move.name)+'! '+cap(def.name)+' took '+dmg+' damage! '+effMsg);
-  }
-  shake(defWho+'-sprite'); updateHP(defWho,def); renderTeamIcons();
-  await wait(900);
+  log(cap(atk.name)+' used '+cap(move.name)+'!');
+  await wait(400);
 
-  // Life Orb recoil (10% of damage dealt, not max HP)
-  if (atk.item?.effect==='lifeorb') {
-    const recoil=Math.max(1,Math.floor(dmg/10));
-    atk.currentHP=Math.max(0,atk.currentHP-recoil);
-    updateHP(atkWho,atk);
+  for (let hitN=0; hitN<numHits; hitN++) {
+    if (def.currentHP<=0 || def.fainted) { numHits=hitN; break; }
+
+    const dmg=calcDamage(move,atk,def);
+    totalDmg+=dmg;
+
+    // Focus Sash — only triggers on first hit if at full HP
+    if (def.item?.effect==='focussash'&&!def.sashUsed&&def.currentHP===def.maxHP&&def.currentHP-dmg<=0) {
+      def.currentHP=1; def.sashUsed=true;
+      const effMsg=effText(eff);
+      log((numHits>1?'Hit '+(hitN+1)+'! ':'')+cap(def.name)+' held on with Focus Sash! '+effMsg);
+    } else {
+      def.currentHP=Math.max(0,def.currentHP-dmg);
+      const effMsg=hitN===0?effText(eff):'';
+      log((numHits>1?'Hit '+(hitN+1)+': ':'')+cap(def.name)+' took '+dmg+' damage! '+effMsg);
+    }
+    shake(defWho+'-sprite'); updateHP(defWho,def); renderTeamIcons();
+    await wait(numHits>1?500:900);
+
+    // Per-hit: Life Orb recoil
+    if (atk.item?.effect==='lifeorb') {
+      const recoil=Math.max(1,Math.floor(dmg/10));
+      atk.currentHP=Math.max(0,atk.currentHP-recoil);
+      updateHP(atkWho,atk);
+    }
+    // Per-hit: Rocky Helmet (contact only)
+    if (def.item?.effect==='rockyhelmet'&&move.damageClass==='physical') {
+      const rocky=Math.floor(atk.maxHP/6);
+      atk.currentHP=Math.max(0,atk.currentHP-rocky);
+      updateHP(atkWho,atk);
+    }
   }
-  // Rocky Helmet (contact only)
-  if (def.item?.effect==='rockyhelmet'&&move.damageClass==='physical') {
-    const rocky=Math.floor(atk.maxHP/6);
-    atk.currentHP=Math.max(0,atk.currentHP-rocky);
-    log(cap(def.name)+"'s Rocky Helmet hurt "+cap(atk.name)+"!");
-    updateHP(atkWho,atk); await wait(600);
-  }
-  // Shell Bell (heals after Life Orb recoil is applied)
-  if (atk.item?.effect==='shellbell') {
-    const heal=Math.floor(dmg/8);
+
+  if (numHits>1) { log('Hit '+numHits+' time(s)! Total: '+totalDmg+' damage!'); await wait(700); }
+
+  // Shell Bell — once after all hits, based on total damage
+  if (atk.item?.effect==='shellbell'&&totalDmg>0) {
+    const heal=Math.floor(totalDmg/8);
     atk.currentHP=Math.min(atk.maxHP,atk.currentHP+heal);
     updateHP(atkWho,atk);
   }
+  // Rocky Helmet log message (single) — already applied per-hit above
+  if (def.item?.effect==='rockyhelmet'&&move.damageClass==='physical'&&totalDmg>0) {
+    log(cap(def.name)+"'s Rocky Helmet hurt "+cap(atk.name)+'!'); await wait(600);
+  }
 
-  // Stat changes from damaging moves (self-debuffs like Close Combat, or secondary effects like Icy Wind)
+  // Stat changes after all hits
   if (move.statChanges?.length>0) {
-    const tgt=move.statChangeToSelf?atk:def;
-    const tgtWho=move.statChangeToSelf?atkWho:defWho;
-    if (tgt.currentHP>0&&!tgt.fainted) {
-      if (!tgt.stages) tgt.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
-      let msgs=[];
-      for (const sc of move.statChanges) {
+    const opponentTargets=['selected-pokemon','all-opponents','random-opponent','all-other-pokemon','all-pokemon'];
+    for (const sc of move.statChanges) {
+      const isSelfChange = move.moveTarget==='user' ||
+        (sc.change < 0 && opponentTargets.includes(move.moveTarget)) ||
+        (sc.change > 0 && opponentTargets.includes(move.moveTarget) && !['icy-wind','electroweb','bulldoze','rock-tomb','mud-shot','mud-slap','aurora-beam','growl','leer','tail-whip','smokescreen','sand-attack','flash','kinesis','sweet-scent','feather-dance','captivate','noble-roar','confide','parting-shot','spirit-break','mystical-fire','snarl'].includes(move.name));
+      const tgt = isSelfChange ? atk : def;
+      const tgtWho = isSelfChange ? atkWho : defWho;
+      if (!tgt.fainted) {
+        if (!tgt.stages) tgt.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
         const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
         const oldS=tgt.stages[key]||0;
         tgt.stages[key]=Math.max(-6,Math.min(6,oldS+sc.change));
         if (tgt.stages[key]!==oldS) {
           const dir=sc.change>0?'rose':'fell'; const mag=Math.abs(sc.change)>=2?' sharply':'';
-          msgs.push(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'!');
+          log(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'!'); await wait(600);
         }
       }
-      if (msgs.length) { log(msgs.join(' ')); await wait(700); }
     }
   }
 
