@@ -9,8 +9,10 @@ website:
       - href: index.qmd
         text: Home
       - about.qmd
-      - href: pokemon.qmd
-        text: Pokemon Battle
+      - href: team-builder.qmd
+        text: Team Builder
+      - href: pokemon-battle.qmd
+        text: Battle
 
 format:
   html:
