@@ -299,6 +299,8 @@ async function selectMove(name, url) {
     const move = {
       name: d.name, type: d.type.name, power: d.power, accuracy: d.accuracy,
       pp: d.pp, maxPP: d.pp, damageClass: d.damage_class.name, desc,
+      statChanges: (d.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),
+      metaCategory: d.meta?.category?.name||'', moveTarget: d.target?.name||'selected-pokemon', heal: d.meta?.healing||0,
     };
     moveCache[name] = move;
     currentMoves[activeMoveSlot] = move;

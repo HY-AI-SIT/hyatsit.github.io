@@ -265,7 +265,7 @@ async function newBattle() {
   let saved=[];
   try { saved=JSON.parse(localStorage.getItem('pokeTeam')||'[]'); } catch(e){}
   if (!saved.length) { document.getElementById('pb-loading').style.display='none'; document.getElementById('no-team').style.display='block'; return; }
-  yourTeam = deepClone(saved).map(p=>({...p,currentHP:p.maxHP,fainted:false,sashUsed:false,berryUsed:false}));
+  yourTeam = deepClone(saved).map(p=>({...p,currentHP:p.maxHP,fainted:false,sashUsed:false,berryUsed:false,stages:{attack:0,defense:0,spAtk:0,spDef:0,speed:0},protecting:false}));
   foeTeam = await buildFoeTeam();
   yourIdx=0; foeIdx=0; potions=3; lockedMove=null; foeLocked=null;
   document.getElementById('btn-potion').textContent='Potion (3)';
@@ -294,7 +294,7 @@ async function fetchFoePokemon(id) {
     try {
       const mr=await fetch(m.move.url); const md=await mr.json();
       const effEntry=md.effect_entries?md.effect_entries.find(e=>e.language.name==='en'):null;
-      return {name:md.name,type:md.type.name,power:md.power||40,accuracy:md.accuracy||100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—'};
+      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0};
     } catch(e) { return {name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}; }
   }));
   const moves = moveData.length ? moveData : [{name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}];
@@ -305,6 +305,7 @@ async function fetchFoePokemon(id) {
     attack:calcStat(stats.attack||45), defense:calcStat(stats.defense||45),
     spAtk:calcStat(stats['special-attack']||45), spDef:calcStat(stats['special-defense']||45),
     speed:calcStat(stats.speed||45), fainted:false, sashUsed:false, berryUsed:false,
+    stages:{attack:0,defense:0,spAtk:0,spDef:0,speed:0}, protecting:false,
   };
 }
 
@@ -369,10 +370,12 @@ function setAllDisabled(v) {
   document.getElementById('btn-potion').disabled=v;
 }
 
+function stageMultiplier(stage) { const s=Math.max(-6,Math.min(6,stage||0)); return s>=0?(2+s)/2:2/(2-s); }
+
 function calcDamage(move, atk, def) {
   if (!move.power) return 0;
-  const A = move.damageClass==='physical' ? atk.attack : atk.spAtk;
-  const D = move.damageClass==='physical' ? def.defense : def.spDef;
+  const A = move.damageClass==='physical' ? atk.attack*stageMultiplier(atk.stages?.attack) : atk.spAtk*stageMultiplier(atk.stages?.spAtk);
+  const D = move.damageClass==='physical' ? def.defense*stageMultiplier(def.stages?.defense) : def.spDef*stageMultiplier(def.stages?.spDef);
   const stab = atk.types.includes(move.type) ? 1.5 : 1;
   const eff = getEff(move.type, def.types);
   let atkMult = 1;
@@ -396,12 +399,15 @@ async function takeTurn(moveIdx) {
   const ym=yp.moves[moveIdx];
   if (!ym || ym.pp<=0) { busy=false; setAllDisabled(false); return; }
 
+  // Clear protect from previous turn
+  yp.protecting=false; fp.protecting=false;
+
   // Handle choice items
   if (yp.item?.effect?.startsWith('choice') && lockedMove===null) lockedMove=moveIdx;
 
   // Speed check
-  let yourSpd=yp.speed*(yp.item?.effect==='choicescarf'?1.5:1);
-  let foeSpd=fp.speed*(fp.item?.effect==='choicescarf'?1.5:1);
+  let yourSpd=yp.speed*stageMultiplier(yp.stages?.speed)*(yp.item?.effect==='choicescarf'?1.5:1);
+  let foeSpd=fp.speed*stageMultiplier(fp.stages?.speed)*(fp.item?.effect==='choicescarf'?1.5:1);
   const yourFirst=yourSpd>=foeSpd;
 
   if (yourFirst) {
@@ -419,10 +425,53 @@ async function takeTurn(moveIdx) {
   busy=false; setAllDisabled(false);
 }
 
+async function doStatusMove(move, atk, def, atkWho, defWho) {
+  // Protect / Detect
+  if (['protect','detect','endure','wide-guard','quick-guard'].includes(move.name)||move.metaCategory==='protect') {
+    atk.protecting=true;
+    log(cap(atk.name)+' is protecting itself!'); await wait(700); return false;
+  }
+  // Healing moves
+  if (move.metaCategory==='heal'||(move.heal&&move.heal>0)) {
+    const heal=Math.floor(atk.maxHP*(move.heal||50)/100);
+    atk.currentHP=Math.min(atk.maxHP,atk.currentHP+heal);
+    updateHP(atkWho,atk);
+    log(cap(atk.name)+' restored HP with '+cap(move.name)+'!'); await wait(700); return false;
+  }
+  // Stat changes
+  if (move.statChanges&&move.statChanges.length>0) {
+    if (!atk.stages) atk.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
+    if (!def.stages) def.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
+    let msgs=[cap(atk.name)+' used '+cap(move.name)+'!'];
+    for (const sc of move.statChanges) {
+      const selfTarget=move.moveTarget==='user';
+      const tgt=selfTarget?atk:def; const tgtWho=selfTarget?atkWho:defWho;
+      const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
+      const oldS=tgt.stages[key]||0;
+      tgt.stages[key]=Math.max(-6,Math.min(6,oldS+sc.change));
+      if (tgt.stages[key]!==oldS) {
+        const dir=sc.change>0?'rose':'fell'; const mag=Math.abs(sc.change)>=2?' sharply':'';
+        msgs.push(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'!');
+      } else {
+        msgs.push(cap(tgt.name)+"'s stats won't go any "+(sc.change>0?'higher':'lower')+'!');
+      }
+    }
+    log(msgs.join(' ')); await wait(800); return false;
+  }
+  log(cap(atk.name)+' used '+cap(move.name)+'! But nothing happened...'); await wait(700); return false;
+}
+
 async function doMove(move, atk, def, atkWho, defWho) {
   move.pp=Math.max(0,move.pp-1);
-  if (!move.power) { log(cap(atk.name)+' used '+cap(move.name)+'! But nothing happened...'); await wait(700); return false; }
-  const hit=Math.random()*100<=move.accuracy;
+
+  // Protect check — block if defender is protected (and this isn't a status move targeting self)
+  if (def.protecting && move.damageClass!=='status') {
+    log(cap(atk.name)+' used '+cap(move.name)+'! But '+cap(def.name)+' is protecting itself!');
+    await wait(700); return false;
+  }
+
+  if (!move.power) { return await doStatusMove(move,atk,def,atkWho,defWho); }
+  const hit=Math.random()*100<=(move.accuracy??100);
   if (!hit) { log(cap(atk.name)+' used '+cap(move.name)+'... but it missed!'); await wait(700); return false; }
   const dmg=calcDamage(move,atk,def);
   const eff=getEff(move.type,def.types);
@@ -471,17 +520,15 @@ async function doMove(move, atk, def, atkWho, defWho) {
 
 async function enemyMove() {
   const fp=foePoke(), yp=yourPoke();
-  const avail=fp.moves.filter(m=>m.pp>0&&m.power>0);
+  const avail=fp.moves.filter(m=>m.pp>0);
   if (!avail.length) { log('Wild '+cap(fp.name)+' has no moves left!'); return false; }
-  let moveIdx;
+  let move;
   if (fp.item?.effect?.startsWith('choice')&&foeLocked!==null) {
-    moveIdx=foeLocked;
+    move=fp.moves[foeLocked]&&fp.moves[foeLocked].pp>0?fp.moves[foeLocked]:avail[0];
   } else {
-    moveIdx=Math.floor(Math.random()*avail.length);
-    const m=avail[moveIdx];
-    if (fp.item?.effect?.startsWith('choice')&&foeLocked===null) foeLocked=fp.moves.indexOf(m);
+    move=avail[Math.floor(Math.random()*avail.length)];
+    if (fp.item?.effect?.startsWith('choice')&&foeLocked===null) foeLocked=fp.moves.indexOf(move);
   }
-  const move=avail[moveIdx]||avail[0];
   return await doMove(move,fp,yp,'e','p');
 }
 
