@@ -1,5 +1,12 @@
 [
   {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "temp_website",
@@ -19,12 +26,5 @@
     "title": "temp_website",
     "section": "Interests",
     "text": "Interests\n\nI like to play games, watch movies and anime, and listen to music. &lt;- github generated this for me btw\nI also like to learn new things and explore new technologies."
-  },
-  {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
-    "section": "",
-    "text": "About this site"
   }
 ]

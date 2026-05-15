@@ -1,0 +1,49 @@
+---
+title: "Pokemon Battle"
+---
+
+```{=html}
+<div id="game">
+  <div id="enemy-area">
+    <p id="enemy-name">Charmander</p>
+    <p id="enemy-hp">HP: 100</p>
+  </div>
+  <div id="player-area">
+    <p id="player-name">Bulbasaur</p>
+    <p id="player-hp">HP: 100</p>
+  </div>
+  <div id="battle-log">Battle started!</div>
+  <button onclick="attack()">⚔️ Attack</button>
+  <button onclick="heal()">💊 Heal</button>
+</div>
+
+<script>
+let playerHP = 100;
+let enemyHP = 100;
+
+function attack() {
+  if (playerHP <= 0 || enemyHP <= 0) return;
+  let playerDmg = Math.floor(Math.random() * 20) + 5;
+  let enemyDmg = Math.floor(Math.random() * 15) + 5;
+  enemyHP = Math.max(0, enemyHP - playerDmg);
+  playerHP = Math.max(0, playerHP - enemyDmg);
+  update(`You dealt ${playerDmg} damage! Enemy dealt ${enemyDmg} damage!`);
+}
+
+function heal() {
+  if (playerHP <= 0) return;
+  let amount = Math.floor(Math.random() * 20) + 10;
+  playerHP = Math.min(100, playerHP + amount);
+  let enemyDmg = Math.floor(Math.random() * 15) + 5;
+  playerHP = Math.max(0, playerHP - enemyDmg);
+  update(`You healed ${amount} HP! Enemy dealt ${enemyDmg} damage!`);
+}
+
+function update(msg) {
+  document.getElementById("player-hp").textContent = `HP: ${playerHP}`;
+  document.getElementById("enemy-hp").textContent = `HP: ${enemyHP}`;
+  let log = playerHP <= 0 ? "You fainted! 💀" : enemyHP <= 0 ? "Enemy fainted! 🎉 You win!" : msg;
+  document.getElementById("battle-log").textContent = log;
+}
+</script>
+```
