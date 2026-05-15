@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>About – Pokemon Battle Site</title>
+<title>Team Builder – Pokemon Battle Site</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -97,7 +97,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./about.html" aria-current="page"> 
+    <a class="nav-link" href="./about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item">
@@ -123,7 +123,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">About</h1>
+<h1 class="title">Team Builder</h1>
 </div>
 
 
@@ -140,7 +140,364 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>About this site</p>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+#tb { font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 0.5rem 0; }
+.tb-section { margin-bottom: 16px; }
+.tb-label { font-size: 8px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Team grid */
+#team-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+.team-slot { border: 1px solid #ddd; border-radius: 8px; padding: 8px 4px; text-align: center; position: relative; background: #fafafa; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.team-slot.filled { background: #fff; border-color: #aaa; }
+.ts-empty { font-size: 18px; color: #ddd; }
+.ts-name { font-size: 7px; margin-top: 2px; text-transform: capitalize; }
+.ts-item { font-size: 6px; color: #888; margin-top: 2px; }
+.ts-remove { position: absolute; top: 3px; right: 4px; background: none; border: none; font-size: 9px; color: #ccc; cursor: pointer; padding: 0; font-family: inherit; }
+.ts-remove:hover { color: #e44; }
+
+/* Search */
+#search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+#poke-search { flex: 1; padding: 8px 10px; font-size: 9px; font-family: 'Press Start 2P', monospace; border: 1px solid #ccc; border-radius: 6px; }
+#btn-search { padding: 8px 12px; font-size: 9px; font-family: 'Press Start 2P', monospace; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; background: #fff; }
+#btn-search:hover { background: #f0f0f0; }
+#search-status { font-size: 8px; color: #888; min-height: 14px; }
+
+/* Pokemon panel */
+#poke-panel { display: none; border: 1px solid #ddd; border-radius: 10px; padding: 14px; background: #fff; }
+#panel-top { display: grid; grid-template-columns: 110px 1fr; gap: 16px; margin-bottom: 14px; }
+#panel-sprite { width: 96px; height: 96px; image-rendering: pixelated; }
+#panel-name { font-size: 13px; margin-bottom: 6px; text-transform: capitalize; }
+.type-badge { display: inline-block; border-radius: 4px; padding: 2px 6px; font-size: 7px; color: #fff; margin-right: 4px; }
+#panel-stats { font-size: 7px; color: #666; margin-top: 8px; line-height: 1.8; }
+
+/* Selects */
+.tb-select-wrap { margin-bottom: 10px; }
+.tb-select-wrap select { width: 100%; padding: 6px 8px; font-size: 8px; font-family: 'Press Start 2P', monospace; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+.tb-subdesc { font-size: 7px; color: #888; margin-top: 4px; line-height: 1.6; min-height: 20px; }
+
+/* Move slots */
+#moves-section { margin-bottom: 12px; }
+.move-slots-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mslot { border: 1px solid #ddd; border-radius: 8px; padding: 8px; cursor: pointer; min-height: 56px; background: #fafafa; transition: background 0.1s; }
+.mslot:hover { background: #f0f0f0; }
+.mslot.filled { background: #fff; border-color: #aaa; }
+.mslot-empty { font-size: 8px; color: #bbb; }
+.mslot-name { font-size: 9px; font-weight: 500; margin-bottom: 3px; text-transform: capitalize; }
+.mslot-meta { font-size: 7px; margin-bottom: 3px; }
+.mslot-desc { font-size: 7px; color: #666; line-height: 1.5; }
+
+/* Move picker */
+#move-picker { display: none; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #fff; margin-top: 8px; }
+#move-filter { width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 8px; font-family: 'Press Start 2P', monospace; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 8px; }
+#move-list { max-height: 180px; overflow-y: auto; }
+.move-list-item { padding: 6px 8px; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+.move-list-item:hover { background: #f0f0f0; }
+.mli-name { font-size: 8px; text-transform: capitalize; }
+.mli-meta { font-size: 7px; color: #888; }
+
+/* Add button */
+#btn-add { width: 100%; padding: 10px; font-size: 9px; font-family: 'Press Start 2P', monospace; border: 1px solid #888; border-radius: 8px; cursor: pointer; background: #fff; margin-top: 4px; }
+#btn-add:hover { background: #f0f0f0; }
+#add-status { font-size: 8px; color: #888; text-align: center; margin-top: 6px; min-height: 14px; }
+
+/* Battle link */
+#go-battle { display: block; text-align: center; margin-top: 12px; padding: 10px; font-size: 9px; font-family: 'Press Start 2P', monospace; border: 1px solid #888; border-radius: 8px; text-decoration: none; color: #333; background: #fff; }
+#go-battle:hover { background: #f0f0f0; }
+</style>
+
+<div id="tb">
+  <div class="tb-label">Your Team</div>
+  <div id="team-grid"></div>
+
+  <div class="tb-label">Add Pokemon</div>
+  <div id="search-row">
+    <input id="poke-search" type="text" placeholder="Name or number (e.g. charizard, 6)">
+    <button id="btn-search" onclick="loadPokemon()">Search</button>
+  </div>
+  <div id="search-status"></div>
+
+  <div id="poke-panel">
+    <div id="panel-top">
+      <div style="text-align:center">
+        <img id="panel-sprite" src="" alt="Pokemon sprite">
+        <div id="panel-types" style="margin-top:4px"></div>
+      </div>
+      <div>
+        <div id="panel-name"></div>
+        <div id="panel-stats"></div>
+        <div style="margin-top:10px">
+          <div class="tb-label">Ability</div>
+          <div class="tb-select-wrap">
+            <select id="ability-select"></select>
+            <div class="tb-subdesc" id="ability-desc">Loading...</div>
+          </div>
+          <div class="tb-label">Held Item</div>
+          <div class="tb-select-wrap">
+            <select id="item-select"></select>
+            <div class="tb-subdesc" id="item-desc"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tb-label">Moves (click a slot to choose)</div>
+    <div id="moves-section">
+      <div class="move-slots-grid">
+        <div class="mslot" id="mslot-0" onclick="openMovePicker(0)"><span class="mslot-empty">Click to add Move 1</span></div>
+        <div class="mslot" id="mslot-1" onclick="openMovePicker(1)"><span class="mslot-empty">Click to add Move 2</span></div>
+        <div class="mslot" id="mslot-2" onclick="openMovePicker(2)"><span class="mslot-empty">Click to add Move 3</span></div>
+        <div class="mslot" id="mslot-3" onclick="openMovePicker(3)"><span class="mslot-empty">Click to add Move 4</span></div>
+      </div>
+      <div id="move-picker">
+        <input id="move-filter" type="text" placeholder="Search moves..." oninput="renderMovePickerList(this.value)">
+        <div id="move-list"></div>
+      </div>
+    </div>
+
+    <button id="btn-add" onclick="addToTeam()">+ Add to Team</button>
+    <div id="add-status"></div>
+  </div>
+
+  <a id="go-battle" href="pokemon-battle.html">Go to Battle →</a>
+</div>
+
+<script>
+const TYPE_COLORS = {fire:'#F08030',water:'#6890F0',grass:'#78C850',electric:'#F8D030',psychic:'#F85888',ice:'#98D8D8',dragon:'#7038F8',dark:'#705848',fairy:'#EE99AC',normal:'#A8A878',fighting:'#C03028',poison:'#A040A0',ground:'#E0C068',flying:'#A890F0',bug:'#A8B820',rock:'#B8A038',ghost:'#705898',steel:'#B8B8D0'};
+
+const ITEMS = [
+  {name:'None',effect:'none',desc:'No held item.'},
+  {name:'Leftovers',effect:'leftovers',desc:'Restores 1/16 max HP at the end of each turn.'},
+  {name:'Life Orb',effect:'lifeorb',desc:'Boosts move power by 30%. Lose 10% max HP after attacking.'},
+  {name:'Choice Band',effect:'choiceband',desc:'Boosts Attack by 50%. Locked to the first move used.'},
+  {name:'Choice Specs',effect:'choicespecs',desc:'Boosts Sp. Atk by 50%. Locked to the first move used.'},
+  {name:'Choice Scarf',effect:'choicescarf',desc:'Boosts Speed by 50%. Locked to the first move used.'},
+  {name:'Sitrus Berry',effect:'sitrusberry',desc:'Restores 25% max HP when HP falls below 50%. One use.'},
+  {name:'Rocky Helmet',effect:'rockyhelmet',desc:'Deals 1/6 max HP damage to attackers that make contact.'},
+  {name:'Focus Sash',effect:'focussash',desc:'Survive any one-hit KO from full HP with 1 HP remaining. One use.'},
+  {name:'Shell Bell',effect:'shellbell',desc:'Restores HP equal to 1/8 of the damage dealt.'},
+  {name:'Assault Vest',effect:'assaultvest',desc:'Raises Sp. Def by 50%. Cannot use status moves.'},
+  {name:'Eviolite',effect:'eviolite',desc:'Raises Defense and Sp. Def by 50% for unevolved Pokemon.'},
+  {name:'Black Sludge',effect:'blacksludge',desc:'Heals 1/16 HP per turn for Poison types. Damages other types.'},
+];
+
+let currentPokemon = null;
+let currentMoveList = [];
+let currentMoves = [null,null,null,null];
+let currentAbility = null;
+let currentItem = ITEMS[0];
+let team = [];
+let activeMoveSlot = -1;
+let moveCache = {};
+let abilityCache = {};
+
+try { team = JSON.parse(localStorage.getItem('pokeTeam') || '[]'); } catch(e) { team = []; }
+
+function calcHP(base) { return Math.floor((2*base+31)*50/100)+50+10; }
+function calcStat(base) { return Math.floor((Math.floor((2*base+31)*50/100)+5)); }
+function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1).replace(/-/g,' ') : ''; }
+
+async function loadPokemon() {
+  const q = document.getElementById('poke-search').value.trim().toLowerCase();
+  if (!q) return;
+  const st = document.getElementById('search-status');
+  st.textContent = 'Loading...';
+  document.getElementById('poke-panel').style.display = 'none';
+  try {
+    const r = await fetch('https://pokeapi.co/api/v2/pokemon/' + q);
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    const allMoves = d.moves.map(m => ({name:m.move.name, url:m.move.url}));
+    const stats = {};
+    d.stats.forEach(s => { stats[s.stat.name] = s.base_stat; });
+    currentPokemon = {
+      id: d.id, name: d.name,
+      sprite: d.sprites.front_default,
+      backSprite: d.sprites.back_default || d.sprites.front_default,
+      types: d.types.map(t => t.type.name),
+      abilities: d.abilities.map(a => ({name:a.ability.name, url:a.ability.url, hidden:a.is_hidden})),
+      stats,
+      maxHP: calcHP(stats.hp||45),
+      attack: calcStat(stats.attack||45),
+      defense: calcStat(stats.defense||45),
+      spAtk: calcStat(stats['special-attack']||45),
+      spDef: calcStat(stats['special-defense']||45),
+      speed: calcStat(stats.speed||45),
+    };
+    currentMoveList = allMoves;
+    currentMoves = [null,null,null,null];
+    currentAbility = currentPokemon.abilities[0];
+    currentItem = ITEMS[0];
+    st.textContent = '';
+    renderPanel();
+    document.getElementById('poke-panel').style.display = 'block';
+    loadAbilityDesc(currentAbility);
+  } catch(e) {
+    st.textContent = 'Pokemon not found. Try a different name or number.';
+  }
+}
+
+async function loadAbilityDesc(ability) {
+  document.getElementById('ability-desc').textContent = 'Loading...';
+  if (abilityCache[ability.name]) {
+    ability.desc = abilityCache[ability.name];
+    document.getElementById('ability-desc').textContent = ability.desc;
+    return;
+  }
+  try {
+    const r = await fetch(ability.url);
+    const d = await r.json();
+    const entry = d.effect_entries.find(e => e.language.name === 'en');
+    ability.desc = entry ? entry.short_effect : 'No description available.';
+    abilityCache[ability.name] = ability.desc;
+    document.getElementById('ability-desc').textContent = ability.desc;
+  } catch(e) { document.getElementById('ability-desc').textContent = 'No description available.'; }
+}
+
+function renderPanel() {
+  const p = currentPokemon;
+  document.getElementById('panel-sprite').src = p.sprite;
+  document.getElementById('panel-name').textContent = cap(p.name) + ' #' + p.id;
+  document.getElementById('panel-types').innerHTML = p.types.map(t=>`<span class="type-badge" style="background:${TYPE_COLORS[t]||'#888'}">${t}</span>`).join('');
+  document.getElementById('panel-stats').innerHTML =
+    `HP <b>${p.maxHP}</b> &nbsp; Atk <b>${p.attack}</b> &nbsp; Def <b>${p.defense}</b><br>SpA <b>${p.spAtk}</b> &nbsp; SpD <b>${p.spDef}</b> &nbsp; Spe <b>${p.speed}</b>`;
+
+  const abilEl = document.getElementById('ability-select');
+  abilEl.innerHTML = p.abilities.map((a,i)=>`<option value="${i}">${cap(a.name)}${a.hidden?' (Hidden)':''}</option>`).join('');
+  abilEl.onchange = () => {
+    currentAbility = p.abilities[parseInt(abilEl.value)];
+    loadAbilityDesc(currentAbility);
+  };
+
+  const itemEl = document.getElementById('item-select');
+  itemEl.innerHTML = ITEMS.map((item,i)=>`<option value="${i}">${item.name}</option>`).join('');
+  itemEl.onchange = () => { currentItem = ITEMS[parseInt(itemEl.value)]; document.getElementById('item-desc').textContent = currentItem.desc; };
+  document.getElementById('item-desc').textContent = ITEMS[0].desc;
+
+  renderMoveSlots();
+  document.getElementById('move-picker').style.display = 'none';
+}
+
+function renderMoveSlots() {
+  for (let i = 0; i < 4; i++) {
+    const m = currentMoves[i];
+    const el = document.getElementById('mslot-' + i);
+    if (m) {
+      const color = TYPE_COLORS[m.type] || '#888';
+      el.innerHTML = `<div class="mslot-name">${cap(m.name)}</div>
+        <div class="mslot-meta" style="color:${color}">${m.type} · ${m.damageClass} · ${m.power?m.power+' pwr':'status'} · ${m.accuracy?m.accuracy+'% acc':'—'} · PP ${m.pp}</div>
+        <div class="mslot-desc">${m.desc}</div>`;
+      el.classList.add('filled');
+    } else {
+      el.innerHTML = `<span class="mslot-empty">Click to add Move ${i+1}</span>`;
+      el.classList.remove('filled');
+    }
+  }
+}
+
+function openMovePicker(slot) {
+  activeMoveSlot = slot;
+  const picker = document.getElementById('move-picker');
+  picker.style.display = 'block';
+  document.getElementById('move-filter').value = '';
+  renderMovePickerList('');
+  document.getElementById('move-filter').focus();
+}
+
+function renderMovePickerList(filter) {
+  const f = filter.toLowerCase().replace(/ /g,'-');
+  const filtered = currentMoveList.filter(m => m.name.includes(f)).slice(0, 60);
+  const list = document.getElementById('move-list');
+  list.innerHTML = filtered.map(m => {
+    const cached = moveCache[m.name];
+    const meta = cached ? `<span class="mli-meta" style="color:${TYPE_COLORS[cached.type]||'#888'}">${cached.type} · ${cached.power||'status'}</span>` : `<span class="mli-meta" style="color:#ccc">click to load</span>`;
+    return `<div class="move-list-item" onclick="selectMove('${m.name}','${m.url}')"><span class="mli-name">${cap(m.name)}</span>${meta}</div>`;
+  }).join('');
+  if (!filtered.length) list.innerHTML = '<div style="padding:8px;font-size:8px;color:#888">No moves found</div>';
+}
+
+async function selectMove(name, url) {
+  const el = document.getElementById('mslot-' + activeMoveSlot);
+  el.innerHTML = '<span class="mslot-empty">Loading...</span>';
+  document.getElementById('move-picker').style.display = 'none';
+
+  if (moveCache[name]) {
+    currentMoves[activeMoveSlot] = moveCache[name];
+    renderMoveSlots();
+    return;
+  }
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    const effEntry = d.effect_entries ? d.effect_entries.find(e => e.language.name === 'en') : null;
+    const flavorEntry = d.flavor_text_entries ? [...d.flavor_text_entries].reverse().find(e => e.language.name === 'en') : null;
+    let desc = effEntry ? effEntry.short_effect.replace(/\$effect_chance/g, d.effect_chance||'').trim()
+                        : (flavorEntry ? flavorEntry.flavor_text.replace(/\n/g,' ') : 'No description.');
+    const move = {
+      name: d.name, type: d.type.name, power: d.power, accuracy: d.accuracy,
+      pp: d.pp, maxPP: d.pp, damageClass: d.damage_class.name, desc,
+    };
+    moveCache[name] = move;
+    currentMoves[activeMoveSlot] = move;
+    renderMoveSlots();
+  } catch(e) {
+    currentMoves[activeMoveSlot] = {name,type:'normal',power:40,accuracy:100,pp:10,maxPP:10,damageClass:'physical',desc:'Move data unavailable.'};
+    renderMoveSlots();
+  }
+}
+
+function addToTeam() {
+  const st = document.getElementById('add-status');
+  if (!currentPokemon) { st.textContent = 'Search for a Pokemon first.'; return; }
+  const moves = currentMoves.filter(m => m !== null);
+  if (!moves.length) { st.textContent = 'Add at least one move!'; return; }
+  if (team.length >= 6) { st.textContent = 'Team is full! Remove a Pokemon first.'; return; }
+  const poke = {
+    ...currentPokemon,
+    moves: moves.map(m => ({...m, pp: m.maxPP, maxPP: m.maxPP})),
+    ability: {...currentAbility},
+    item: {...currentItem},
+    currentHP: currentPokemon.maxHP,
+  };
+  team.push(poke);
+  saveTeam();
+  renderTeamSlots();
+  st.textContent = cap(currentPokemon.name) + ' added to team!';
+  setTimeout(() => { st.textContent = ''; }, 2000);
+}
+
+function removeFromTeam(i) {
+  team.splice(i, 1);
+  saveTeam();
+  renderTeamSlots();
+}
+
+function saveTeam() {
+  try { localStorage.setItem('pokeTeam', JSON.stringify(team)); } catch(e) {}
+}
+
+function renderTeamSlots() {
+  const grid = document.getElementById('team-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'team-slot' + (team[i] ? ' filled' : '');
+    if (team[i]) {
+      const p = team[i];
+      slot.innerHTML = `<button class="ts-remove" onclick="removeFromTeam(${i})">✕</button>
+        <img src="${p.sprite}" style="width:48px;height:48px;image-rendering:pixelated">
+        <div class="ts-name">${cap(p.name)}</div>
+        <div class="ts-item">${p.item.name !== 'None' ? p.item.name : ''}</div>`;
+    } else {
+      slot.innerHTML = '<span class="ts-empty">' + (i+1) + '</span>';
+    }
+    grid.appendChild(slot);
+  }
+}
+
+document.getElementById('poke-search').addEventListener('keydown', e => { if (e.key === 'Enter') loadPokemon(); });
+renderTeamSlots();
+</script>
 
 
 

@@ -1,17 +1,10 @@
 [
   {
-    "objectID": "pokemon.html",
-    "href": "pokemon.html",
-    "title": "Pokemon Battle",
+    "objectID": "team-builder.html",
+    "href": "team-builder.html",
+    "title": "Team Builder",
     "section": "",
-    "text": "Loading Pokemon...\n  \n    \n      \n        -\n        Your Pokemon • Lv.50\n        \n        \n        \n        \n        \n      \n      \n        -\n        Wild Pokemon • Lv.50\n        \n        \n        \n        \n        \n      \n    \n    What will you do?\n    \n    \n      Use Potion\n      New battle"
-  },
-  {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
-    "section": "",
-    "text": "About this site"
+    "text": "Your Team\n  \n\n  Add Pokemon\n  \n    \n    Search\n  \n  \n\n  \n    \n      \n        \n        \n      \n      \n        \n        \n        \n          Ability\n          \n            \n            Loading...\n          \n          Held Item\n          \n            \n            \n          \n        \n      \n    \n\n    Moves (click a slot to choose)\n    \n      \n        Click to add Move 1\n        Click to add Move 2\n        Click to add Move 3\n        Click to add Move 4\n      \n      \n        \n        \n      \n    \n\n    + Add to Team\n    \n  \n\n  Go to Battle →"
   },
   {
     "objectID": "index.html",
@@ -33,5 +26,19 @@
     "title": "temp_website",
     "section": "",
     "text": "I like to play games, watch movies and anime, and listen to music. &lt;- github generated this for me btw\nI also like to learn new things and explore new technologies.\n\n\n\n\npoop"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  },
+  {
+    "objectID": "pokemon-battle.html",
+    "href": "pokemon-battle.html",
+    "title": "Pokemon Battle",
+    "section": "",
+    "text": "No team found!\n    Build your team first →\n  \n  Loading...\n  \n    \n      You\n      \n    \n    \n      Foe\n      \n    \n    \n      \n        Your Pokemon\n        —\n        \n        \n        \n        \n        \n        \n      \n      \n        Wild Pokemon\n        —\n        \n        \n        \n        \n        \n        \n      \n    \n    Battle starting...\n    \n    \n      Potion (3)\n      New battle\n      Edit team"
   }
 ]
