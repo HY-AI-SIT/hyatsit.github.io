@@ -4,8 +4,8 @@ title: "Pokemon Battle"
 
 ```{=html}
 <style>
-  #pb { font-family: 'Press Start 2P', monospace; padding: 1rem 0; }
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  #pb { font-family: 'Press Start 2P', monospace; padding: 1rem 0; }
   .pb-arena { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   .pb-card { background: #f5f5f5; border: 1px solid #ddd; border-radius: 12px; padding: 12px; text-align: center; }
   .pb-name { font-size: 11px; font-weight: 500; margin-bottom: 4px; text-transform: capitalize; }
@@ -107,7 +107,7 @@ async function newBattle() {
   document.getElementById('btn-heal').textContent = 'Potion (' + potions + ')';
   document.getElementById('p-status').textContent = '';
   document.getElementById('e-status').textContent = '';
-  document.getElementById('pb-sprite').classList.remove('pb-faint');
+  document.getElementById('p-sprite').classList.remove('pb-faint');
   document.getElementById('e-sprite').classList.remove('pb-faint');
   document.getElementById('pb-loading').style.display = 'none';
   document.getElementById('pb-game').style.display = 'block';
