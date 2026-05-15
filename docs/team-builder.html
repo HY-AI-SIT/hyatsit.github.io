@@ -464,6 +464,7 @@ async function selectMove(name, url) {
       statChanges: (d.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),
       metaCategory: d.meta?.category?.name||'', moveTarget: d.target?.name||'selected-pokemon', heal: d.meta?.healing||0,
       statChangeToSelf: d.target?.name==='user', minHits: d.meta?.min_hits??null, maxHits: d.meta?.max_hits??null,
+      flinchChance: d.meta?.flinch_chance||0,
     };
     moveCache[name] = move;
     currentMoves[activeMoveSlot] = move;

@@ -14,19 +14,30 @@ title: "Pokemon Battle"
 .team-icon.active { border-color: #4CAF50; }
 .team-icon.fainted { opacity: 0.25; filter: grayscale(1); border-color: #ddd; }
 
+/* Field conditions bar */
+#field-bar { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; min-height: 18px; }
+.field-tag { display: inline-flex; align-items: center; gap: 3px; border-radius: 4px; padding: 2px 6px; font-size: 7px; color: #fff; white-space: nowrap; }
+.field-tag .ft-turns { opacity: 0.8; font-size: 6px; }
+
 /* Arena */
 .arena { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
 .arena-card { border: 1px solid #ddd; border-radius: 10px; padding: 10px; text-align: center; background: #fafafa; }
 .ac-label { font-size: 7px; color: #888; margin-bottom: 4px; }
 .ac-name { font-size: 10px; margin-bottom: 2px; text-transform: capitalize; }
-.ac-info { font-size: 7px; color: #888; margin-bottom: 6px; }
+.ac-info { font-size: 7px; color: #888; margin-bottom: 4px; }
 .ac-sprite { width: 80px; height: 80px; image-rendering: pixelated; transition: opacity 0.4s; }
 .ac-sprite.fainted { opacity: 0.15; filter: grayscale(1); }
 .type-badge { display: inline-block; border-radius: 3px; padding: 1px 5px; font-size: 7px; color: #fff; margin: 2px 2px 4px; }
 .hp-wrap { background: #ddd; border-radius: 4px; height: 7px; margin: 5px 0; overflow: hidden; }
 .hp-bar { height: 100%; border-radius: 4px; transition: width 0.4s, background 0.3s; }
 .hp-text { font-size: 7px; color: #888; }
-.item-badge { font-size: 7px; color: #888; margin-top: 3px; }
+.item-badge { font-size: 7px; color: #888; margin-top: 2px; }
+
+/* Stat stages display */
+.stat-stages { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin-top: 4px; min-height: 14px; }
+.stage-pill { font-size: 6px; border-radius: 3px; padding: 1px 4px; color: #fff; white-space: nowrap; }
+.stage-up { background: #4CAF50; }
+.stage-down { background: #f44336; }
 
 /* Log */
 #pb-log { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; font-size: 9px; min-height: 38px; margin-bottom: 12px; line-height: 1.9; }
@@ -70,6 +81,10 @@ title: "Pokemon Battle"
       <span class="tb-label-sm">Foe</span>
       <div id="foe-icons"></div>
     </div>
+
+    <!-- Field conditions -->
+    <div id="field-bar"></div>
+
     <div class="arena">
       <div class="arena-card">
         <div class="ac-label">Your Pokemon</div>
@@ -80,6 +95,7 @@ title: "Pokemon Battle"
         <div class="hp-wrap"><div class="hp-bar" id="p-hpbar" style="width:100%;background:#4CAF50"></div></div>
         <div class="hp-text" id="p-hptext"></div>
         <div class="item-badge" id="p-item"></div>
+        <div class="stat-stages" id="p-stages"></div>
       </div>
       <div class="arena-card">
         <div class="ac-label">Wild Pokemon</div>
@@ -90,6 +106,7 @@ title: "Pokemon Battle"
         <div class="hp-wrap"><div class="hp-bar" id="e-hpbar" style="width:100%;background:#4CAF50"></div></div>
         <div class="hp-text" id="e-hptext"></div>
         <div class="item-badge" id="e-item"></div>
+        <div class="stat-stages" id="e-stages"></div>
       </div>
     </div>
     <div id="pb-log">Battle starting...</div>
@@ -105,6 +122,185 @@ title: "Pokemon Battle"
 <script>
 const TC = {fire:{grass:2,ice:2,bug:2,steel:2,water:0.5,fire:0.5,rock:0.5,dragon:0.5},water:{fire:2,ground:2,rock:2,water:0.5,grass:0.5,dragon:0.5},electric:{water:2,flying:2,electric:0.5,grass:0.5,dragon:0.5,ground:0},grass:{water:2,ground:2,rock:2,fire:0.5,grass:0.5,poison:0.5,flying:0.5,bug:0.5,dragon:0.5,steel:0.5},ice:{grass:2,ground:2,flying:2,dragon:2,fire:0.5,water:0.5,ice:0.5,steel:0.5},fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:0.5,flying:0.5,psychic:0.5,bug:0.5,ghost:0,fairy:0.5},poison:{grass:2,fairy:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0},ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:0.5,bug:0.5,flying:0},flying:{grass:2,fighting:2,bug:2,electric:0.5,rock:0.5,steel:0.5},psychic:{fighting:2,poison:2,psychic:0.5,dark:0,steel:0.5},bug:{grass:2,psychic:2,dark:2,fire:0.5,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,fairy:0.5},rock:{fire:2,ice:2,flying:2,bug:2,fighting:0.5,ground:0.5,steel:0.5},ghost:{psychic:2,ghost:2,normal:0,dark:0.5},dragon:{dragon:2,steel:0.5,fairy:0},dark:{psychic:2,ghost:2,fighting:0.5,dark:0.5,fairy:0.5},steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5},fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5},normal:{rock:0.5,steel:0.5,ghost:0}};
 const TYPE_COLORS = {fire:'#F08030',water:'#6890F0',grass:'#78C850',electric:'#F8D030',psychic:'#F85888',ice:'#98D8D8',dragon:'#7038F8',dark:'#705848',fairy:'#EE99AC',normal:'#A8A878',fighting:'#C03028',poison:'#A040A0',ground:'#E0C068',flying:'#A890F0',bug:'#A8B820',rock:'#B8A038',ghost:'#705898',steel:'#B8B8D0'};
+
+// Stat abbreviations for display
+const STAT_ABBR = {attack:'Atk',defense:'Def',spAtk:'SpA',spDef:'SpD',speed:'Spe'};
+
+// Stage multiplier label e.g. x1.5, x0.67
+function stageLabel(stage) {
+  const m = stageMultiplier(stage);
+  return (m>=1?'x':'x')+m.toFixed(2).replace(/\.?0+$/,'');
+}
+
+// Field conditions state
+let field = {};
+function resetField() {
+  field = {
+    weather: null,       // 'sun','rain','sand','hail' + turns remaining
+    weatherTurns: 0,
+    trickRoom: false, trickRoomTurns: 0,
+    terrain: null,       // 'electric','grassy','misty','psychic'
+    terrainTurns: 0,
+    yourTailwind: false, yourTailwindTurns: 0,
+    foeTailwind: false,  foeTailwindTurns: 0,
+    yourLightScreen: false, yourLightScreenTurns: 0,
+    foeLightScreen: false,  foeLightScreenTurns: 0,
+    yourReflect: false, yourReflectTurns: 0,
+    foeReflect: false,  foeReflectTurns: 0,
+    yourAuroraVeil: false, yourAuroraVeilTurns: 0,
+    foeAuroraVeil: false,  foeAuroraVeilTurns: 0,
+  };
+}
+
+// Field condition tag definitions: key -> {label, color, emoji}
+const FIELD_DEFS = {
+  sun:           {label:'Harsh Sun',      color:'#F08030', emoji:'☀️'},
+  rain:          {label:'Rain',           color:'#6890F0', emoji:'🌧️'},
+  sand:          {label:'Sandstorm',      color:'#B8A038', emoji:'🌪️'},
+  hail:          {label:'Hail',           color:'#98D8D8', emoji:'❄️'},
+  trickRoom:     {label:'Trick Room',     color:'#7038F8', emoji:'🔮'},
+  electric:      {label:'Electric Terrain',color:'#F8D030',emoji:'⚡'},
+  grassy:        {label:'Grassy Terrain', color:'#78C850', emoji:'🌿'},
+  misty:         {label:'Misty Terrain',  color:'#EE99AC', emoji:'🌸'},
+  psychic:       {label:'Psychic Terrain',color:'#F85888', emoji:'🧠'},
+  yourTailwind:  {label:'Your Tailwind',  color:'#A890F0', emoji:'💨'},
+  foeTailwind:   {label:'Foe Tailwind',   color:'#A890F0', emoji:'💨'},
+  yourLightScreen:{label:'Your Lt.Screen',color:'#F8D030', emoji:'🛡️'},
+  foeLightScreen: {label:'Foe Lt.Screen', color:'#F8D030', emoji:'🛡️'},
+  yourReflect:   {label:'Your Reflect',   color:'#6890F0', emoji:'🪞'},
+  foeReflect:    {label:'Foe Reflect',    color:'#6890F0', emoji:'🪞'},
+  yourAuroraVeil:{label:'Your Aurora Veil',color:'#98D8D8',emoji:'🌈'},
+  foeAuroraVeil: {label:'Foe Aurora Veil',color:'#98D8D8',emoji:'🌈'},
+};
+
+function renderFieldBar() {
+  const bar = document.getElementById('field-bar');
+  const tags = [];
+  // Weather
+  if (field.weather) {
+    const d = FIELD_DEFS[field.weather];
+    tags.push({key:field.weather, label:d.label, color:d.color, emoji:d.emoji, turns:field.weatherTurns});
+  }
+  // Trick Room
+  if (field.trickRoom) tags.push({key:'trickRoom', ...FIELD_DEFS.trickRoom, turns:field.trickRoomTurns});
+  // Terrain
+  if (field.terrain) {
+    const d = FIELD_DEFS[field.terrain];
+    tags.push({key:field.terrain, label:d.label, color:d.color, emoji:d.emoji, turns:field.terrainTurns});
+  }
+  // Side conditions
+  const sides = ['yourTailwind','foeTailwind','yourLightScreen','foeLightScreen','yourReflect','foeReflect','yourAuroraVeil','foeAuroraVeil'];
+  for (const k of sides) {
+    if (field[k]) tags.push({key:k, ...FIELD_DEFS[k], turns:field[k+'Turns']});
+  }
+  bar.innerHTML = tags.map(t =>
+    `<span class="field-tag" style="background:${t.color}">${t.emoji} ${t.label}<span class="ft-turns"> ${t.turns}t</span></span>`
+  ).join('');
+}
+
+function renderStageDisplay(who, poke) {
+  const el = document.getElementById(who+'-stages');
+  if (!el) return;
+  const stages = poke.stages || {};
+  const pills = [];
+  for (const [stat, abbr] of Object.entries(STAT_ABBR)) {
+    const s = stages[stat] || 0;
+    if (s !== 0) {
+      const label = abbr + ' ' + stageLabel(s);
+      pills.push(`<span class="stage-pill ${s>0?'stage-up':'stage-down'}">${s>0?'▲':'▼'} ${label}</span>`);
+    }
+  }
+  el.innerHTML = pills.join('');
+}
+
+// ── Field-effect move tables ──────────────────────────────────────────────
+const WEATHER_MOVES = {
+  'sunny-day':'sun','drought':'sun','desolate-land':'sun',
+  'rain-dance':'rain','drizzle':'rain','primordial-sea':'rain',
+  'sandstorm':'sand','sand-stream':'sand','sand-spit':'sand',
+  'hail':'hail','snow-warning':'hail','snowscape':'hail',
+};
+const TERRAIN_MOVES = {
+  'electric-terrain':'electric','rising-voltage':'electric',
+  'grassy-terrain':'grassy','grassy-glide':'grassy',
+  'misty-terrain':'misty','misty-explosion':'misty',
+  'psychic-terrain':'psychic','expanding-force':'psychic',
+};
+const SCREEN_MOVES_YOUR = ['light-screen','reflect','aurora-veil'];
+const SCREEN_MOVES_FOE  = ['light-screen','reflect','aurora-veil']; // same names, side determined by who uses it
+
+function applyFieldMove(moveName, atkWho) {
+  const isYour = atkWho === 'p';
+  // Weather
+  if (WEATHER_MOVES[moveName]) {
+    field.weather = WEATHER_MOVES[moveName];
+    field.weatherTurns = 5;
+    return true;
+  }
+  // Terrain
+  if (TERRAIN_MOVES[moveName]) {
+    field.terrain = TERRAIN_MOVES[moveName];
+    field.terrainTurns = 5;
+    return true;
+  }
+  // Trick Room
+  if (moveName === 'trick-room') {
+    field.trickRoom = !field.trickRoom;
+    field.trickRoomTurns = field.trickRoom ? 5 : 0;
+    return true;
+  }
+  // Tailwind
+  if (moveName === 'tailwind') {
+    if (isYour) { field.yourTailwind=true; field.yourTailwindTurns=4; }
+    else        { field.foeTailwind=true; field.foeTailwindTurns=4; }
+    return true;
+  }
+  // Light Screen
+  if (moveName === 'light-screen') {
+    if (isYour) { field.yourLightScreen=true; field.yourLightScreenTurns=5; }
+    else        { field.foeLightScreen=true; field.foeLightScreenTurns=5; }
+    return true;
+  }
+  // Reflect
+  if (moveName === 'reflect') {
+    if (isYour) { field.yourReflect=true; field.yourReflectTurns=5; }
+    else        { field.foeReflect=true; field.foeReflectTurns=5; }
+    return true;
+  }
+  // Aurora Veil
+  if (moveName === 'aurora-veil') {
+    if (isYour) { field.yourAuroraVeil=true; field.yourAuroraVeilTurns=5; }
+    else        { field.foeAuroraVeil=true; field.foeAuroraVeilTurns=5; }
+    return true;
+  }
+  return false;
+}
+
+function tickField() {
+  // Tick weather
+  if (field.weather) {
+    field.weatherTurns--;
+    if (field.weatherTurns<=0) { field.weather=null; field.weatherTurns=0; }
+  }
+  // Tick trick room
+  if (field.trickRoom) {
+    field.trickRoomTurns--;
+    if (field.trickRoomTurns<=0) { field.trickRoom=false; field.trickRoomTurns=0; }
+  }
+  // Tick terrain
+  if (field.terrain) {
+    field.terrainTurns--;
+    if (field.terrainTurns<=0) { field.terrain=null; field.terrainTurns=0; }
+  }
+  // Tick side conditions
+  const sides = ['yourTailwind','foeTailwind','yourLightScreen','foeLightScreen','yourReflect','foeReflect','yourAuroraVeil','foeAuroraVeil'];
+  for (const k of sides) {
+    if (field[k]) {
+      field[k+'Turns']--;
+      if (field[k+'Turns']<=0) { field[k]=false; field[k+'Turns']=0; }
+    }
+  }
+}
 
 function calcHP(base) { return Math.floor((2*base+31)*50/100)+50+10; }
 function calcStat(base) { return Math.floor((Math.floor((2*base+31)*50/100)+5)); }
@@ -124,15 +320,17 @@ async function newBattle() {
   let saved=[];
   try { saved=JSON.parse(localStorage.getItem('pokeTeam')||'[]'); } catch(e){}
   if (!saved.length) { document.getElementById('pb-loading').style.display='none'; document.getElementById('no-team').style.display='block'; return; }
-  yourTeam = deepClone(saved).map(p=>({...p,currentHP:p.maxHP,fainted:false,sashUsed:false,berryUsed:false,stages:{attack:0,defense:0,spAtk:0,spDef:0,speed:0},protecting:false}));
+  yourTeam = deepClone(saved).map(p=>({...p,currentHP:p.maxHP,fainted:false,sashUsed:false,berryUsed:false,flinched:false,stages:{attack:0,defense:0,spAtk:0,spDef:0,speed:0},protecting:false}));
   foeTeam = await buildFoeTeam();
   yourIdx=0; foeIdx=0; potions=3; lockedMove=null; foeLocked=null;
+  resetField();
   document.getElementById('btn-potion').textContent='Potion (3)';
   document.getElementById('pb-loading').style.display='none';
   document.getElementById('pb-game').style.display='block';
   renderTeamIcons();
   renderActive();
   renderMoves();
+  renderFieldBar();
   log('A wild team appeared! Go ' + cap(yourTeam[0].name) + '!');
   busy=false;
 }
@@ -153,18 +351,18 @@ async function fetchFoePokemon(id) {
     try {
       const mr=await fetch(m.move.url); const md=await mr.json();
       const effEntry=md.effect_entries?md.effect_entries.find(e=>e.language.name==='en'):null;
-      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0,statChangeToSelf:md.target?.name==='user',minHits:md.meta?.min_hits??null,maxHits:md.meta?.max_hits??null};
-    } catch(e) { return {name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}; }
+      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0,statChangeToSelf:md.target?.name==='user',minHits:md.meta?.min_hits??null,maxHits:md.meta?.max_hits??null,flinchChance:md.meta?.flinch_chance||0};
+    } catch(e) { return {name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle',statChanges:[],minHits:null,maxHits:null}; }
   }));
-  const moves = moveData.length ? moveData : [{name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}];
+  const moves = moveData.length ? moveData : [{name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle',statChanges:[],minHits:null,maxHits:null}];
   return {
     id, name:d.name, sprite:d.sprites.front_default, backSprite:d.sprites.back_default||d.sprites.front_default,
     types:d.types.map(t=>t.type.name), moves, item:{name:'None',effect:'none'},
     maxHP:calcHP(stats.hp||45), currentHP:calcHP(stats.hp||45),
     attack:calcStat(stats.attack||45), defense:calcStat(stats.defense||45),
     spAtk:calcStat(stats['special-attack']||45), spDef:calcStat(stats['special-defense']||45),
-    speed:calcStat(stats.speed||45), fainted:false, sashUsed:false, berryUsed:false,
-    stages:{attack:0,defense:0,spAtk:0,spDef:0,speed:0}, protecting:false,
+    speed:calcStat(stats.speed||45), fainted:false, sashUsed:false, berryUsed:false, flinched:false,
+    stages:{attack:0,defense:0,spAtk:0,spDef:0,speed:0}, protecting:false, canEvolve:false,
   };
 }
 
@@ -201,6 +399,7 @@ function renderActive() {
   document.getElementById('p-sprite').classList.toggle('fainted',yp.fainted);
   document.getElementById('e-sprite').classList.toggle('fainted',fp.fainted);
   updateHP('p',yp); updateHP('e',fp);
+  renderStageDisplay('p',yp); renderStageDisplay('e',fp);
 }
 
 function updateHP(who, poke) {
@@ -249,6 +448,27 @@ function calcDamage(move, atk, def) {
     if (def.item.effect==='assaultvest'&&move.damageClass==='special') defMult=1.5;
     if (def.item.effect==='eviolite'&&def.canEvolve) defMult=1.5;
   }
+  // Weather boosts
+  if (field.weather==='sun')  { if (move.type==='fire') atkMult*=1.5; if (move.type==='water') atkMult*=0.5; }
+  if (field.weather==='rain') { if (move.type==='water') atkMult*=1.5; if (move.type==='fire') atkMult*=0.5; }
+  // Terrain boosts (grounded pokemon — simplified: non-flying types)
+  const defGrounded = !def.types.includes('flying');
+  const atkGrounded = !atk.types.includes('flying');
+  if (field.terrain==='electric' && move.type==='electric' && atkGrounded) atkMult*=1.3;
+  if (field.terrain==='grassy'   && move.type==='grass'    && atkGrounded) atkMult*=1.3;
+  if (field.terrain==='psychic'  && move.type==='psychic'  && atkGrounded) atkMult*=1.3;
+  if (field.terrain==='misty'    && move.type==='dragon'   && defGrounded) atkMult*=0.5;
+  // Screens
+  const atkIsYour = atk === yourPoke();
+  const defIsYour = def === yourPoke();
+  if (move.damageClass==='special') {
+    if (defIsYour  && (field.yourLightScreen || field.yourAuroraVeil)) defMult*=1.5;
+    if (!defIsYour && (field.foeLightScreen  || field.foeAuroraVeil))  defMult*=1.5;
+  }
+  if (move.damageClass==='physical') {
+    if (defIsYour  && (field.yourReflect     || field.yourAuroraVeil)) defMult*=1.5;
+    if (!defIsYour && (field.foeReflect      || field.foeAuroraVeil))  defMult*=1.5;
+  }
   const rng=0.85+Math.random()*0.15;
   const base=Math.floor(Math.floor(Math.floor(2*50/5+2)*move.power*(A*atkMult)/Math.max(1,D*defMult)/50)+2);
   return Math.max(1,Math.floor(base*stab*eff*rng));
@@ -264,16 +484,15 @@ async function takeTurn(moveIdx) {
   if (!ym || ym.pp<=0) { busy=false; setAllDisabled(false); return; }
   if (yp.item?.effect==='assaultvest'&&!ym.power) { log(cap(yp.name)+' is holding Assault Vest and cannot use status moves!'); busy=false; setAllDisabled(false); return; }
 
-  // Clear protect from previous turn
   yp.protecting=false; fp.protecting=false;
+  yp.flinched=false; fp.flinched=false;
 
-  // Handle choice items
   if (yp.item?.effect?.startsWith('choice') && lockedMove===null) lockedMove=moveIdx;
 
-  // Speed check
-  let yourSpd=yp.speed*stageMultiplier(yp.stages?.speed)*(yp.item?.effect==='choicescarf'?1.5:1);
-  let foeSpd=fp.speed*stageMultiplier(fp.stages?.speed)*(fp.item?.effect==='choicescarf'?1.5:1);
-  const yourFirst=yourSpd>=foeSpd;
+  // Speed with Tailwind and Trick Room
+  let yourSpd=yp.speed*stageMultiplier(yp.stages?.speed)*(yp.item?.effect==='choicescarf'?1.5:1)*(field.yourTailwind?2:1);
+  let foeSpd=fp.speed*stageMultiplier(fp.stages?.speed)*(fp.item?.effect==='choicescarf'?1.5:1)*(field.foeTailwind?2:1);
+  let yourFirst = field.trickRoom ? yourSpd<=foeSpd : yourSpd>=foeSpd;
 
   if (yourFirst) {
     const done=await doMove(ym, yp, fp, 'p', 'e'); if(done) return;
@@ -290,7 +509,43 @@ async function takeTurn(moveIdx) {
   busy=false; setAllDisabled(false);
 }
 
+async function applyStatChange(sc, atk, def, atkWho, defWho, move) {
+  const opponentTargets=['selected-pokemon','all-opponents','random-opponent','all-other-pokemon','all-pokemon'];
+  const isSelfChange = move.moveTarget==='user' ||
+    (sc.change < 0 && opponentTargets.includes(move.moveTarget)) ||
+    (sc.change > 0 && opponentTargets.includes(move.moveTarget) && !['icy-wind','electroweb','bulldoze','rock-tomb','mud-shot','mud-slap','aurora-beam','growl','leer','tail-whip','smokescreen','sand-attack','flash','kinesis','sweet-scent','feather-dance','captivate','noble-roar','confide','parting-shot','spirit-break','mystical-fire','snarl'].includes(move.name));
+  const tgt = isSelfChange ? atk : def;
+  const tgtWho = isSelfChange ? atkWho : defWho;
+  if (tgt.fainted) return;
+  if (!tgt.stages) tgt.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
+  const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
+  const oldS=tgt.stages[key]||0;
+  tgt.stages[key]=Math.max(-6,Math.min(6,oldS+sc.change));
+  if (tgt.stages[key]!==oldS) {
+    const dir=sc.change>0?'rose':'fell'; const mag=Math.abs(sc.change)>=2?' sharply':'';
+    const newLabel = stageLabel(tgt.stages[key]);
+    log(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'! ('+STAT_ABBR[key]+' now '+newLabel+')');
+    renderStageDisplay(tgtWho, tgt);
+    await wait(700);
+  }
+}
+
 async function doStatusMove(move, atk, def, atkWho, defWho) {
+  // Field-changing status moves
+  if (applyFieldMove(move.name, atkWho)) {
+    const fieldNames = {
+      'sunny-day':'The sunlight turned harsh!','rain-dance':'It started to rain!','sandstorm':'A sandstorm kicked up!','hail':'It started to hail!',
+      'trick-room': field.trickRoom ? 'Dimensions were twisted!' : 'The twisted dimensions returned to normal!',
+      'electric-terrain':'An electric current ran across the field!','grassy-terrain':'Grass grew to cover the field!',
+      'misty-terrain':'Mist swirled around the battlefield!','psychic-terrain':'The battlefield got weird!',
+      'tailwind':'The tailwind blew!','light-screen':'A wall of light cut special damage!',
+      'reflect':'A wall of light cut physical damage!','aurora-veil':'A veil of light covered the battlefield!',
+    };
+    log(cap(atk.name)+' used '+cap(move.name)+'! '+(fieldNames[move.name]||''));
+    renderFieldBar();
+    await wait(800);
+    return false;
+  }
   // Protect / Detect
   if (['protect','detect','endure','wide-guard','quick-guard'].includes(move.name)||move.metaCategory==='protect') {
     atk.protecting=true;
@@ -305,31 +560,26 @@ async function doStatusMove(move, atk, def, atkWho, defWho) {
   }
   // Stat changes
   if (move.statChanges&&move.statChanges.length>0) {
-    if (!atk.stages) atk.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
-    if (!def.stages) def.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
-    let msgs=[cap(atk.name)+' used '+cap(move.name)+'!'];
+    log(cap(atk.name)+' used '+cap(move.name)+'!'); await wait(400);
     for (const sc of move.statChanges) {
-      const selfTarget=move.statChangeToSelf!==undefined ? move.statChangeToSelf : move.moveTarget==='user';
-      const tgt=selfTarget?atk:def; const tgtWho=selfTarget?atkWho:defWho;
-      const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
-      const oldS=tgt.stages[key]||0;
-      tgt.stages[key]=Math.max(-6,Math.min(6,oldS+sc.change));
-      if (tgt.stages[key]!==oldS) {
-        const dir=sc.change>0?'rose':'fell'; const mag=Math.abs(sc.change)>=2?' sharply':'';
-        msgs.push(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'!');
-      } else {
-        msgs.push(cap(tgt.name)+"'s stats won't go any "+(sc.change>0?'higher':'lower')+'!');
-      }
+      await applyStatChange(sc, atk, def, atkWho, defWho, move);
     }
-    log(msgs.join(' ')); await wait(800); return false;
+    return false;
   }
   log(cap(atk.name)+' used '+cap(move.name)+'! But nothing happened...'); await wait(700); return false;
 }
 
 async function doMove(move, atk, def, atkWho, defWho) {
+  // Flinch check — attacker couldn't move
+  if (atk.flinched) {
+    atk.flinched=false;
+    log(cap(atk.name)+' flinched and couldn\'t move!');
+    await wait(700); return false;
+  }
+
   move.pp=Math.max(0,move.pp-1);
 
-  // Protect check — block damaging moves and status moves targeting the opponent
+  // Protect check
   const selfTargeted = move.moveTarget==='user' || (move.statChanges?.length>0 && move.statChangeToSelf);
   if (def.protecting && !selfTargeted) {
     log(cap(atk.name)+' used '+cap(move.name)+'! But '+cap(def.name)+' is protecting itself!');
@@ -340,13 +590,12 @@ async function doMove(move, atk, def, atkWho, defWho) {
   const hit=Math.random()*100<=(move.accuracy??100);
   if (!hit) { log(cap(atk.name)+' used '+cap(move.name)+'... but it missed!'); await wait(700); return false; }
 
-  // Determine number of hits for multi-hit moves
+  // Determine hit count
   let numHits = 1;
   if (move.minHits && move.maxHits) {
     if (move.minHits===2 && move.maxHits===2) { numHits=2; }
     else if (move.minHits===3 && move.maxHits===3) { numHits=3; }
     else if (move.minHits===2 && move.maxHits===5) {
-      // Standard 2-5 hit: 35.7% chance of 2, 35.7% chance of 3, 14.3% chance of 4, 14.3% chance of 5
       const r=Math.random(); numHits=r<0.357?2:r<0.714?3:r<0.857?4:5;
     } else {
       numHits=move.minHits+Math.floor(Math.random()*(move.maxHits-move.minHits+1));
@@ -365,18 +614,22 @@ async function doMove(move, atk, def, atkWho, defWho) {
     const dmg=calcDamage(move,atk,def);
     totalDmg+=dmg;
 
-    // Focus Sash — only triggers on first hit if at full HP
-    if (def.item?.effect==='focussash'&&!def.sashUsed&&def.currentHP===def.maxHP&&def.currentHP-dmg<=0) {
+    // Focus Sash — survive a KO hit when at full HP
+    const wouldBeKOd = def.currentHP - dmg <= 0;
+    const atFullHP = def.currentHP > 0 && def.maxHP > 0 && def.currentHP >= def.maxHP;
+    if (def.item?.effect==='focussash' && !def.sashUsed && atFullHP && wouldBeKOd) {
       def.currentHP=1; def.sashUsed=true;
       const effMsg=effText(eff);
-      log((numHits>1?'Hit '+(hitN+1)+'! ':'')+cap(def.name)+' held on with Focus Sash! '+effMsg);
+      shake(defWho+'-sprite'); updateHP(defWho,def); renderTeamIcons();
+      log((numHits>1?'Hit '+(hitN+1)+'! ':'')+cap(def.name)+'\'s Focus Sash activated! It hung on with 1 HP! '+effMsg);
+      await wait(numHits>1?500:900);
     } else {
       def.currentHP=Math.max(0,def.currentHP-dmg);
       const effMsg=hitN===0?effText(eff):'';
       log((numHits>1?'Hit '+(hitN+1)+': ':'')+cap(def.name)+' took '+dmg+' damage! '+effMsg);
+      shake(defWho+'-sprite'); updateHP(defWho,def); renderTeamIcons();
+      await wait(numHits>1?500:900);
     }
-    shake(defWho+'-sprite'); updateHP(defWho,def); renderTeamIcons();
-    await wait(numHits>1?500:900);
 
     // Per-hit: Life Orb recoil
     if (atk.item?.effect==='lifeorb') {
@@ -394,36 +647,27 @@ async function doMove(move, atk, def, atkWho, defWho) {
 
   if (numHits>1) { log('Hit '+numHits+' time(s)! Total: '+totalDmg+' damage!'); await wait(700); }
 
-  // Shell Bell — once after all hits, based on total damage
+  // Flinch — roll once after all hits land
+  if (move.flinchChance>0 && !def.fainted && def.currentHP>0 && Math.random()*100 < move.flinchChance) {
+    def.flinched=true;
+    log(cap(def.name)+' flinched!'); await wait(500);
+  }
+
+  // Shell Bell — once after all hits
   if (atk.item?.effect==='shellbell'&&totalDmg>0) {
     const heal=Math.floor(totalDmg/8);
     atk.currentHP=Math.min(atk.maxHP,atk.currentHP+heal);
     updateHP(atkWho,atk);
   }
-  // Rocky Helmet log message (single) — already applied per-hit above
+  // Rocky Helmet log (single message after all hits)
   if (def.item?.effect==='rockyhelmet'&&move.damageClass==='physical'&&totalDmg>0) {
     log(cap(def.name)+"'s Rocky Helmet hurt "+cap(atk.name)+'!'); await wait(600);
   }
 
   // Stat changes after all hits
   if (move.statChanges?.length>0) {
-    const opponentTargets=['selected-pokemon','all-opponents','random-opponent','all-other-pokemon','all-pokemon'];
     for (const sc of move.statChanges) {
-      const isSelfChange = move.moveTarget==='user' ||
-        (sc.change < 0 && opponentTargets.includes(move.moveTarget)) ||
-        (sc.change > 0 && opponentTargets.includes(move.moveTarget) && !['icy-wind','electroweb','bulldoze','rock-tomb','mud-shot','mud-slap','aurora-beam','growl','leer','tail-whip','smokescreen','sand-attack','flash','kinesis','sweet-scent','feather-dance','captivate','noble-roar','confide','parting-shot','spirit-break','mystical-fire','snarl'].includes(move.name));
-      const tgt = isSelfChange ? atk : def;
-      const tgtWho = isSelfChange ? atkWho : defWho;
-      if (!tgt.fainted) {
-        if (!tgt.stages) tgt.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
-        const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
-        const oldS=tgt.stages[key]||0;
-        tgt.stages[key]=Math.max(-6,Math.min(6,oldS+sc.change));
-        if (tgt.stages[key]!==oldS) {
-          const dir=sc.change>0?'rose':'fell'; const mag=Math.abs(sc.change)>=2?' sharply':'';
-          log(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'!'); await wait(600);
-        }
-      }
+      await applyStatChange(sc, atk, def, atkWho, defWho, move);
     }
   }
 
@@ -472,7 +716,24 @@ async function endOfTurn() {
       const heal=Math.floor(p.maxHP*0.25); p.currentHP=Math.min(p.maxHP,p.currentHP+heal);
       p.berryUsed=true; log(cap(p.name)+"'s Sitrus Berry restored some HP!"); updateHP(who,p); await wait(600);
     }
+    // Grassy Terrain healing
+    if (field.terrain==='grassy' && !p.types?.includes('flying')) {
+      const heal=Math.floor(p.maxHP/16); p.currentHP=Math.min(p.maxHP,p.currentHP+heal);
+      updateHP(who,p);
+    }
+    // Weather damage
+    if (field.weather==='sand' && !['rock','steel','ground'].some(t=>p.types?.includes(t))) {
+      const dmg=Math.floor(p.maxHP/16); p.currentHP=Math.max(0,p.currentHP-dmg);
+      updateHP(who,p);
+    }
+    if (field.weather==='hail' && !p.types?.includes('ice')) {
+      const dmg=Math.floor(p.maxHP/16); p.currentHP=Math.max(0,p.currentHP-dmg);
+      updateHP(who,p);
+    }
   }
+  // Tick field conditions at end of turn
+  tickField();
+  renderFieldBar();
 }
 
 async function handleFaint(who) {
