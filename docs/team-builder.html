@@ -314,13 +314,28 @@ async function loadPokemon() {
     const allMoves = d.moves.map(m => ({name:m.move.name, url:m.move.url}));
     const stats = {};
     d.stats.forEach(s => { stats[s.stat.name] = s.base_stat; });
+    // Check if Pokemon can still evolve (for Eviolite)
+    let canEvolve = false;
+    try {
+      const sr = await fetch(d.species.url);
+      const sd = await sr.json();
+      const er = await fetch(sd.evolution_chain.url);
+      const ed = await er.json();
+      function findSpecies(node, name) {
+        if (node.species.name === name) return node;
+        for (const e of node.evolves_to) { const f=findSpecies(e,name); if(f) return f; }
+        return null;
+      }
+      const node = findSpecies(ed.chain, d.name) || findSpecies(ed.chain, sd.name);
+      canEvolve = node ? node.evolves_to.length > 0 : false;
+    } catch(e) { canEvolve = false; }
     currentPokemon = {
       id: d.id, name: d.name,
       sprite: d.sprites.front_default,
       backSprite: d.sprites.back_default || d.sprites.front_default,
       types: d.types.map(t => t.type.name),
       abilities: d.abilities.map(a => ({name:a.ability.name, url:a.ability.url, hidden:a.is_hidden})),
-      stats,
+      stats, canEvolve,
       maxHP: calcHP(stats.hp||45),
       attack: calcStat(stats.attack||45),
       defense: calcStat(stats.defense||45),
@@ -375,7 +390,12 @@ function renderPanel() {
 
   const itemEl = document.getElementById('item-select');
   itemEl.innerHTML = ITEMS.map((item,i)=>`<option value="${i}">${item.name}</option>`).join('');
-  itemEl.onchange = () => { currentItem = ITEMS[parseInt(itemEl.value)]; document.getElementById('item-desc').textContent = currentItem.desc; };
+  itemEl.onchange = () => {
+    currentItem = ITEMS[parseInt(itemEl.value)];
+    let desc = currentItem.desc;
+    if (currentItem.effect==='eviolite'&&!currentPokemon.canEvolve) desc += ' ⚠ This Pokemon cannot evolve further — Eviolite will have no effect.';
+    document.getElementById('item-desc').textContent = desc;
+  };
   document.getElementById('item-desc').textContent = ITEMS[0].desc;
 
   renderMoveSlots();
@@ -442,6 +462,7 @@ async function selectMove(name, url) {
       pp: d.pp, maxPP: d.pp, damageClass: d.damage_class.name, desc,
       statChanges: (d.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),
       metaCategory: d.meta?.category?.name||'', moveTarget: d.target?.name||'selected-pokemon', heal: d.meta?.healing||0,
+      statChangeToSelf: d.target?.name==='user',
     };
     moveCache[name] = move;
     currentMoves[activeMoveSlot] = move;

@@ -153,7 +153,7 @@ async function fetchFoePokemon(id) {
     try {
       const mr=await fetch(m.move.url); const md=await mr.json();
       const effEntry=md.effect_entries?md.effect_entries.find(e=>e.language.name==='en'):null;
-      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0};
+      return {name:md.name,type:md.type.name,power:md.power??null,accuracy:md.accuracy??100,pp:md.pp||10,maxPP:md.pp||10,damageClass:md.damage_class.name,desc:effEntry?effEntry.short_effect:'—',statChanges:(md.stat_changes||[]).map(sc=>({stat:sc.stat.name,change:sc.change})),metaCategory:md.meta?.category?.name||'',moveTarget:md.target?.name||'selected-pokemon',heal:md.meta?.healing||0,statChangeToSelf:md.target?.name==='user'};
     } catch(e) { return {name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}; }
   }));
   const moves = moveData.length ? moveData : [{name:'tackle',type:'normal',power:40,accuracy:100,pp:35,maxPP:35,damageClass:'physical',desc:'Tackle'}];
@@ -218,7 +218,7 @@ function renderMoves() {
   yp.moves.forEach((m,i)=>{
     const b=document.createElement('button');
     b.className='move-btn'; b.onclick=()=>takeTurn(i);
-    b.disabled=(lockedMove!==null&&lockedMove!==i)||m.pp<=0;
+    b.disabled=(lockedMove!==null&&lockedMove!==i)||m.pp<=0||(yp.item?.effect==='assaultvest'&&!m.power);
     b.innerHTML=`<div class="mb-name">${cap(m.name)}</div><div class="mb-meta" style="color:${TYPE_COLORS[m.type]||'#888'}">${m.type} · ${m.power?m.power+' pwr':'status'} · ${m.accuracy?m.accuracy+'%':'—'} · PP ${m.pp}/${m.maxPP}</div>`;
     grid.appendChild(b);
   });
@@ -242,10 +242,14 @@ function calcDamage(move, atk, def) {
     if (atk.item.effect==='choiceband'&&move.damageClass==='physical') atkMult=1.5;
     if (atk.item.effect==='choicespecs'&&move.damageClass==='special') atkMult=1.5;
     if (atk.item.effect==='lifeorb') atkMult=1.3;
-    if (atk.item.effect==='assaultvest'&&move.damageClass==='special') atkMult=0.5;
+  }
+  let defMult = 1;
+  if (def.item) {
+    if (def.item.effect==='assaultvest'&&move.damageClass==='special') defMult=1.5;
+    if (def.item.effect==='eviolite'&&def.canEvolve) defMult=1.5;
   }
   const rng=0.85+Math.random()*0.15;
-  const base=Math.floor(Math.floor(Math.floor(2*50/5+2)*move.power*(A*atkMult)/Math.max(1,D)/50)+2);
+  const base=Math.floor(Math.floor(Math.floor(2*50/5+2)*move.power*(A*atkMult)/Math.max(1,D*defMult)/50)+2);
   return Math.max(1,Math.floor(base*stab*eff*rng));
 }
 
@@ -257,6 +261,7 @@ async function takeTurn(moveIdx) {
   const yp=yourPoke(), fp=foePoke();
   const ym=yp.moves[moveIdx];
   if (!ym || ym.pp<=0) { busy=false; setAllDisabled(false); return; }
+  if (yp.item?.effect==='assaultvest'&&!ym.power) { log(cap(yp.name)+' is holding Assault Vest and cannot use status moves!'); busy=false; setAllDisabled(false); return; }
 
   // Clear protect from previous turn
   yp.protecting=false; fp.protecting=false;
@@ -303,7 +308,7 @@ async function doStatusMove(move, atk, def, atkWho, defWho) {
     if (!def.stages) def.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
     let msgs=[cap(atk.name)+' used '+cap(move.name)+'!'];
     for (const sc of move.statChanges) {
-      const selfTarget=move.moveTarget==='user';
+      const selfTarget=move.statChangeToSelf!==undefined ? move.statChangeToSelf : move.moveTarget==='user';
       const tgt=selfTarget?atk:def; const tgtWho=selfTarget?atkWho:defWho;
       const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
       const oldS=tgt.stages[key]||0;
@@ -323,8 +328,9 @@ async function doStatusMove(move, atk, def, atkWho, defWho) {
 async function doMove(move, atk, def, atkWho, defWho) {
   move.pp=Math.max(0,move.pp-1);
 
-  // Protect check — block if defender is protected (and this isn't a status move targeting self)
-  if (def.protecting && move.damageClass!=='status') {
+  // Protect check — block damaging moves and status moves targeting the opponent
+  const selfTargeted = move.moveTarget==='user' || (move.statChanges?.length>0 && move.statChangeToSelf);
+  if (def.protecting && !selfTargeted) {
     log(cap(atk.name)+' used '+cap(move.name)+'! But '+cap(def.name)+' is protecting itself!');
     await wait(700); return false;
   }
@@ -347,10 +353,10 @@ async function doMove(move, atk, def, atkWho, defWho) {
   shake(defWho+'-sprite'); updateHP(defWho,def); renderTeamIcons();
   await wait(900);
 
-  // Shell Bell
-  if (atk.item?.effect==='shellbell') {
-    const heal=Math.floor(dmg/8);
-    atk.currentHP=Math.min(atk.maxHP,atk.currentHP+heal);
+  // Life Orb recoil (10% of damage dealt, not max HP)
+  if (atk.item?.effect==='lifeorb') {
+    const recoil=Math.max(1,Math.floor(dmg/10));
+    atk.currentHP=Math.max(0,atk.currentHP-recoil);
     updateHP(atkWho,atk);
   }
   // Rocky Helmet (contact only)
@@ -360,11 +366,31 @@ async function doMove(move, atk, def, atkWho, defWho) {
     log(cap(def.name)+"'s Rocky Helmet hurt "+cap(atk.name)+"!");
     updateHP(atkWho,atk); await wait(600);
   }
-  // Life Orb recoil
-  if (atk.item?.effect==='lifeorb') {
-    const recoil=Math.floor(atk.maxHP/10);
-    atk.currentHP=Math.max(0,atk.currentHP-recoil);
+  // Shell Bell (heals after Life Orb recoil is applied)
+  if (atk.item?.effect==='shellbell') {
+    const heal=Math.floor(dmg/8);
+    atk.currentHP=Math.min(atk.maxHP,atk.currentHP+heal);
     updateHP(atkWho,atk);
+  }
+
+  // Stat changes from damaging moves (self-debuffs like Close Combat, or secondary effects like Icy Wind)
+  if (move.statChanges?.length>0) {
+    const tgt=move.statChangeToSelf?atk:def;
+    const tgtWho=move.statChangeToSelf?atkWho:defWho;
+    if (tgt.currentHP>0&&!tgt.fainted) {
+      if (!tgt.stages) tgt.stages={attack:0,defense:0,spAtk:0,spDef:0,speed:0};
+      let msgs=[];
+      for (const sc of move.statChanges) {
+        const key=sc.stat==='special-attack'?'spAtk':sc.stat==='special-defense'?'spDef':sc.stat;
+        const oldS=tgt.stages[key]||0;
+        tgt.stages[key]=Math.max(-6,Math.min(6,oldS+sc.change));
+        if (tgt.stages[key]!==oldS) {
+          const dir=sc.change>0?'rose':'fell'; const mag=Math.abs(sc.change)>=2?' sharply':'';
+          msgs.push(cap(tgt.name)+"'s "+sc.stat.replace(/-/g,' ')+mag+' '+dir+'!');
+        }
+      }
+      if (msgs.length) { log(msgs.join(' ')); await wait(700); }
+    }
   }
 
   if (def.currentHP<=0) {
@@ -395,9 +421,18 @@ async function endOfTurn() {
   const pairs=[{p:yourPoke(),who:'p'},{p:foePoke(),who:'e'}];
   for (const {p,who} of pairs) {
     if (p.fainted) continue;
-    if (p.item?.effect==='leftovers'||p.item?.effect==='blacksludge'&&p.types?.includes('poison')) {
+    if (p.item?.effect==='leftovers') {
       const heal=Math.floor(p.maxHP/16); p.currentHP=Math.min(p.maxHP,p.currentHP+heal);
       updateHP(who,p);
+    } else if (p.item?.effect==='blacksludge') {
+      if (p.types?.includes('poison')) {
+        const heal=Math.floor(p.maxHP/16); p.currentHP=Math.min(p.maxHP,p.currentHP+heal);
+        updateHP(who,p);
+      } else {
+        const bsDmg=Math.floor(p.maxHP/8); p.currentHP=Math.max(0,p.currentHP-bsDmg);
+        log(cap(p.name)+' was hurt by Black Sludge!'); updateHP(who,p); await wait(600);
+        if (p.currentHP<=0) { p.fainted=true; flash(who+'-sprite'); log(cap(p.name)+' fainted!'); await wait(800); renderTeamIcons(); }
+      }
     }
     if (p.item?.effect==='sitrusberry'&&!p.berryUsed&&p.currentHP/p.maxHP<0.5) {
       const heal=Math.floor(p.maxHP*0.25); p.currentHP=Math.min(p.maxHP,p.currentHP+heal);
